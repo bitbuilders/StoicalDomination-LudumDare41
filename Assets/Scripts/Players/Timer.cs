@@ -5,9 +5,10 @@ using UnityEngine.UI;
 using UnityEngine;
 using System.Globalization;
 
-public class Timer : MonoBehaviour
+public class Timer : Singleton<Timer>
 {
     [SerializeField] Text m_timeText = null;
+    [SerializeField] bool m_playOnAwake = true;
 
     StringBuilder m_stringBuilder;
     float m_time;
@@ -15,15 +16,17 @@ public class Timer : MonoBehaviour
     int m_blinkFont;
     bool m_playing = false;
     bool m_hasBlinked = false;
-    public bool Finished { get; private set; }
+    public bool Finished { get; set; }
+    public bool Paused { get { return !m_playing; } }
 
     private void Start()
     {
         m_stringBuilder = new StringBuilder();
         ResetTimer(10.0f);
+        Finished = false;
         m_startingFont = m_timeText.fontSize;
         m_blinkFont = m_startingFont / 2;
-        Finished = false;
+        if (m_playOnAwake) Resume();
     }
 
     private void Update()
@@ -55,6 +58,7 @@ public class Timer : MonoBehaviour
         UpdateTimer();
         m_hasBlinked = false;
         Finished = true;
+        m_playing = false;
     }
 
     private void UpdateTimer()

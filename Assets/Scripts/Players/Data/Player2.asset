@@ -13,3 +13,4 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   playerTag: 1
   playerName: Bob
+  color: {r: 0.9338235, g: 0.18539144, b: 0.18539144, a: 1}
