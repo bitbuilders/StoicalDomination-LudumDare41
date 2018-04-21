@@ -17,6 +17,11 @@ public abstract class Unit : MonoBehaviour
         SEEKING,
         IDLE,
     }
+    public enum UnitType
+    {
+        DRAGON,
+        CATAPULT,
+    }
 
     [SerializeField] public PlayerTag m_playerTag = PlayerTag.PLAYER_1;
     [SerializeField] Sprite m_front = null;
@@ -37,11 +42,13 @@ public abstract class Unit : MonoBehaviour
 
     public SpriteRenderer m_spriteRenderer;
     ProjectileManager m_projectileManager;
+    UnitManager m_unitManager;
     protected Unit m_nearestTarget = null;
     Sprite m_originalSprite;
     Vector2 m_positionOffset;
-    Vector2 m_actualPosition;
+    public Vector2 m_actualPosition;
     Vector2 m_targetPosition;
+    Vector2 m_collisionForce;
     State m_state;
     float m_currentSpeed;
     float m_offsetRate;
@@ -51,6 +58,7 @@ public abstract class Unit : MonoBehaviour
 
     private void Start()
     {
+        m_unitManager = UnitManager.Instance;
         m_projectileManager = ProjectileManager.Instance;
         m_state = State.IDLE;
         m_spriteRenderer = GetComponentInChildren<SpriteRenderer>();
@@ -58,6 +66,7 @@ public abstract class Unit : MonoBehaviour
         m_actualPosition = transform.position;
         m_targetPosition = m_actualPosition;
         m_positionOffset = Vector2.zero;
+        m_collisionForce = Vector2.zero;
         m_offsetRate = m_bobSpeed;
         m_attackTime = 0.0f;
         m_delayTime = 0.0f;
@@ -70,7 +79,7 @@ public abstract class Unit : MonoBehaviour
         if (!m_paused && Alive)
         {
             Vector2 direction = m_targetPosition - m_actualPosition;
-            if (direction.magnitude > 0.5f)
+            if (direction.magnitude > 1.0f)
             {
                 Vector2 velocity = direction.normalized * m_currentSpeed;
                 velocity *= Time.deltaTime;
@@ -112,9 +121,9 @@ public abstract class Unit : MonoBehaviour
                 {
                     Attack();
                 }
-                else if (m_state == State.SEEKING)
+                else if (m_state == State.SEEKING && m_nearestTarget != null)
                 {
-                    m_currentSpeed = m_speed / 2.0f;
+                    m_currentSpeed = m_speed * 0.5f;
                     m_targetPosition = m_nearestTarget.transform.position;
                 }
             }
@@ -140,6 +149,9 @@ public abstract class Unit : MonoBehaviour
                 m_positionOffset.y = -m_offsetDelta;
             }
         }
+
+        CalculateCollisionForce();
+        m_actualPosition += m_collisionForce * Time.deltaTime;
         transform.position = new Vector3(m_actualPosition.x, m_actualPosition.y) + new Vector3(m_positionOffset.x, m_positionOffset.y);
     }
 
@@ -148,6 +160,7 @@ public abstract class Unit : MonoBehaviour
         m_targetPosition = m_actualPosition;
 
         m_attackTime += Time.deltaTime;
+        UpdateRotation(m_nearestTarget.m_actualPosition - m_actualPosition);
         if (m_attackTime >= m_attackRate)
         {
             LaunchAttack(m_projectileManager);
@@ -163,6 +176,20 @@ public abstract class Unit : MonoBehaviour
         m_playerTag = tag;
         m_isFlying = flying;
         m_health = health;
+    }
+
+    public void CalculateCollisionForce()
+    {
+        m_collisionForce = Vector2.zero;
+        foreach (Unit unit in m_unitManager.m_units)
+        {
+            Vector2 direction = m_actualPosition - unit.m_actualPosition;
+            if (direction.magnitude <= 0.75f)
+            {
+                m_collisionForce += direction;
+            }
+        }
+        m_collisionForce = m_collisionForce.normalized * m_speed * 0.5f;
     }
 
     public void TakeDamage(float damage)
@@ -189,7 +216,7 @@ public abstract class Unit : MonoBehaviour
             m_spriteRenderer.color = c;
             yield return null;
         }
-        UnitManager.Instance.RemnoveUnit(this);
+        m_unitManager.RemnoveUnit(this);
         Destroy(gameObject);
     }
 
@@ -198,7 +225,7 @@ public abstract class Unit : MonoBehaviour
         Unit nearest = null;
 
         float distance = float.MaxValue;
-        foreach (Unit unit in UnitManager.Instance.m_units)
+        foreach (Unit unit in m_unitManager.m_units)
         {
             float dist = (transform.position - unit.transform.position).magnitude;
             if (dist < distance && m_playerTag != unit.m_playerTag)
@@ -209,6 +236,11 @@ public abstract class Unit : MonoBehaviour
         }
 
         m_nearestTarget = nearest;
+    }
+
+    public void SetNearestTarget(Unit target)
+    {
+        m_nearestTarget = target;
     }
 
     private void UpdateRotation(Vector2 velocity)

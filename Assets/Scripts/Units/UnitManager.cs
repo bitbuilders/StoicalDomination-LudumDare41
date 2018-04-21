@@ -11,11 +11,13 @@ public class UnitManager : Singleton<UnitManager>
     List<Unit> m_selectedUnits;
     public List<Unit> m_units;
 
+    Timer m_timer;
     Vector2 m_selectionStart;
     Vector2 m_selectionEnd;
 
     private void Start()
     {
+        m_timer = Timer.Instance;
         m_selectedUnits = new List<Unit>();
         m_selectionStart = Vector2.zero;
         m_selectionStart = m_selectionEnd;
@@ -29,22 +31,25 @@ public class UnitManager : Singleton<UnitManager>
         if (Input.GetMouseButtonDown(0))
         {
             m_selectionStart = mousePos;
-            bool selectedAUnit = false;
-            foreach (Unit unit in m_units)
+            if (!m_timer.Paused)
             {
-                if (Intersects(unit) && m_turnManager.m_playerTurn.playerTag == unit.m_playerTag)
+                bool selectedAUnit = false;
+                foreach (Unit unit in m_units)
                 {
-                    m_selectedUnits.Add(unit);
-                    unit.Select();
-                    selectedAUnit = true;
+                    if (Intersects(unit) && m_turnManager.m_playerTurn.playerTag == unit.m_playerTag)
+                    {
+                        m_selectedUnits.Add(unit);
+                        unit.Select();
+                        selectedAUnit = true;
+                    }
+                }
+                if (!selectedAUnit)
+                {
+                    DeSelectEverything();
                 }
             }
-            if (!selectedAUnit)
-            {
-                DeSelectEverything();
-            }
         }
-        else if (Input.GetMouseButtonUp(0))
+        else if (Input.GetMouseButtonUp(0) && !m_timer.Paused)
         {
             float selectionMinX = m_selectionStart.x < m_selectionEnd.x ? m_selectionStart.x : m_selectionEnd.x;
             float selectionMaxX = m_selectionStart.x < m_selectionEnd.x ? m_selectionEnd.x : m_selectionStart.x;
@@ -63,13 +68,31 @@ public class UnitManager : Singleton<UnitManager>
             }
             m_selectionEnd = m_selectionStart;
         }
-        else if (Input.GetMouseButtonDown(1))
+        else if (Input.GetMouseButtonDown(1) && !m_timer.Paused)
         {
+            Unit target = null;
+            foreach (Unit unit in m_units)
+            {
+                if (unit.m_playerTag != m_turnManager.m_playerTurn.playerTag)
+                {
+                    if (Intersects(unit))
+                    {
+                        target = unit;
+                    }
+                }
+            }
             if (m_selectedUnits.Count > 0)
             {
                 for (int i = 0; i < m_selectedUnits.Count; ++i)
                 {
-                    m_selectedUnits[i].SetTargetPosition(mousePos);
+                    if (target == null)
+                    {
+                        m_selectedUnits[i].SetTargetPosition(mousePos);
+                    }
+                    else
+                    {
+                        m_selectedUnits[i].SetNearestTarget(target);
+                    }
                 }
             }
         }
@@ -169,8 +192,9 @@ public class UnitManager : Singleton<UnitManager>
     {
         foreach (Unit unit in m_units)
         {
+            unit.SetTargetPosition(unit.m_actualPosition);
+            unit.transform.position = unit.m_actualPosition;
             unit.Pause();
-            unit.SetTargetPosition(unit.ActualPosition());
         }
     }
 

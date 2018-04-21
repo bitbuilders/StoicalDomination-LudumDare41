@@ -4,12 +4,6 @@ using UnityEngine;
 
 public class ProjectileManager : Singleton<ProjectileManager>
 {
-    public enum ProjectileType
-    {
-        DRAGON,
-        CATAPULT
-    }
-
     [SerializeField] Transform m_p1ProjectilesLocation = null;
     [SerializeField] Transform m_p2ProjectilesLocation = null;
     [SerializeField] GameObject m_dragonProjectile = null;
@@ -43,15 +37,15 @@ public class ProjectileManager : Singleton<ProjectileManager>
         }
     }
 
-    public GameObject Get(ProjectileType type)
+    public GameObject Get(Unit.UnitType type)
     {
         GameObject projectile = null;
         switch (type)
         {
-            case ProjectileType.DRAGON:
+            case Unit.UnitType.DRAGON:
                 projectile = FindObjectInList(m_dragonProjectiles);
                 break;
-            case ProjectileType.CATAPULT:
+            case Unit.UnitType.CATAPULT:
                 projectile = FindObjectInList(m_catapultProjectiles);
                 break;
         }
