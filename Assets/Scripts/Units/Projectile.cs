@@ -16,6 +16,11 @@ public class Projectile : MonoBehaviour
             Vector2 velocity = direction.normalized * m_speed;
             velocity *= Time.deltaTime;
             transform.position += new Vector3(velocity.x, velocity.y);
+
+            float angle = Vector2.Angle(Vector2.right, direction);
+            if (direction.y < 0.0f) angle *= -1.0f;
+            Quaternion rotation = Quaternion.AngleAxis(angle, Vector3.forward);
+            transform.rotation = rotation;
         }
     }
 
