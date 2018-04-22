@@ -36,7 +36,7 @@ public class UnitManager : Singleton<UnitManager>
                 bool selectedAUnit = false;
                 foreach (Unit unit in m_units)
                 {
-                    if (Intersects(unit) && m_turnManager.m_playerTurn.playerTag == unit.m_playerTag)
+                    if (Intersects(unit) && m_turnManager.m_playerTurn.PlayerTag == unit.m_playerTag)
                     {
                         m_selectedUnits.Add(unit);
                         unit.Select();
@@ -57,7 +57,7 @@ public class UnitManager : Singleton<UnitManager>
             float selectionMaxY = m_selectionStart.y < m_selectionEnd.y ? m_selectionEnd.y : m_selectionStart.y;
             foreach (Unit unit in m_units)
             {
-                if (unit.m_playerTag == m_turnManager.m_playerTurn.playerTag)
+                if (unit.m_playerTag == m_turnManager.m_playerTurn.PlayerTag)
                 {
                     if (UnitWithinSelection(unit, selectionMinX, selectionMaxX, selectionMinY, selectionMaxY))
                     {
@@ -73,7 +73,7 @@ public class UnitManager : Singleton<UnitManager>
             Unit target = null;
             foreach (Unit unit in m_units)
             {
-                if (unit.m_playerTag != m_turnManager.m_playerTurn.playerTag)
+                if (unit.m_playerTag != m_turnManager.m_playerTurn.PlayerTag)
                 {
                     if (Intersects(unit))
                     {
@@ -120,11 +120,11 @@ public class UnitManager : Singleton<UnitManager>
     {
         if (Input.GetMouseButton(0))
         {
-            if (m_turnManager.m_playerTurn.playerTag == Unit.PlayerTag.PLAYER_1)
+            if (m_turnManager.m_playerTurn.PlayerTag == Unit.PlayerTag.PLAYER_1)
             {
                 BlueSelector(true);
             }
-            else if (m_turnManager.m_playerTurn.playerTag == Unit.PlayerTag.PLAYER_2)
+            else if (m_turnManager.m_playerTurn.PlayerTag == Unit.PlayerTag.PLAYER_2)
             {
                 RedSelector(true);
             }
@@ -193,7 +193,6 @@ public class UnitManager : Singleton<UnitManager>
         foreach (Unit unit in m_units)
         {
             unit.SetTargetPosition(unit.m_actualPosition);
-            unit.transform.position = unit.m_actualPosition;
             unit.Pause();
         }
     }

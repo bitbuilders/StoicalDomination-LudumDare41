@@ -3,15 +3,15 @@ using System.Collections.Generic;
 using UnityEngine.UI;
 using UnityEngine;
 
-public class TurnManager : MonoBehaviour
+public class TurnManager : Singleton<TurnManager>
 {
     [SerializeField] Text m_playerTurnText = null;
     [SerializeField] Text m_bannerText = null;
     [SerializeField] [Range(0.5f, 5.0f)] float m_turnTransitionTime = 1.0f;
 
-    [SerializeField] List<PlayerData> m_players;
+    [SerializeField] List<Player> m_players;
 
-    public PlayerData m_playerTurn;
+    public Player m_playerTurn;
     UnitManager m_unitManager;
     Timer m_timer;
     private int m_turn = 0;
@@ -54,8 +54,10 @@ public class TurnManager : MonoBehaviour
 
     private void UpdateName()
     {
-        m_playerTurnText.text = m_playerTurn.playerName.ToLower()[m_playerTurn.playerName.Length - 1] == 's' ? m_playerTurn.playerName + "'" : m_playerTurn.playerName + "'s";
-        m_playerTurnText.color = m_playerTurn.color;
-        m_bannerText.color = m_playerTurn.color;
+        m_playerTurnText.text = m_playerTurn.PlayerData.playerName.ToLower()[m_playerTurn.PlayerData.playerName.Length - 1] == 's' ? 
+            m_playerTurn.PlayerData.playerName + "'" : m_playerTurn.PlayerData.playerName + "'s";
+
+        m_playerTurnText.color = m_playerTurn.PlayerData.color;
+        m_bannerText.color = m_playerTurn.PlayerData.color;
     }
 }

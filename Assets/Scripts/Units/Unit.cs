@@ -17,10 +17,12 @@ public abstract class Unit : MonoBehaviour
         SEEKING,
         IDLE,
     }
+    [System.Serializable]
     public enum UnitType
     {
         DRAGON,
         CATAPULT,
+        ARCHER,
     }
 
     [SerializeField] public PlayerTag m_playerTag = PlayerTag.PLAYER_1;
@@ -64,7 +66,6 @@ public abstract class Unit : MonoBehaviour
         m_spriteRenderer = GetComponentInChildren<SpriteRenderer>();
         m_originalSprite = m_spriteRenderer.sprite;
         m_actualPosition = transform.position;
-        m_targetPosition = m_actualPosition;
         m_positionOffset = Vector2.zero;
         m_collisionForce = Vector2.zero;
         m_offsetRate = m_bobSpeed;

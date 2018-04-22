@@ -18,19 +18,27 @@ public abstract class Player : MonoBehaviour
         public int queueCount;
         public int cost;
     }
-    public int Crystals { get; set; }
+    [SerializeField] public PlayerData PlayerData ;
+    public Unit.PlayerTag PlayerTag { get; set; }
     public float Health { get; private set; }
+    public int Crystals { get; set; }
+    public int UnitLimit { get; set; }
     public bool CanBuy { get; set; }
     public UnitSpawnData[] m_spawnData;
     Timer m_timer;
+    UnitSpawner m_unitSpawner;
 
-    private void Start()
+    private void Awake()
     {
+        CanBuy = true;
+        Crystals = 200;
+        UnitLimit = 25;
+        m_unitSpawner = UnitSpawner.Instance;
         m_timer = Timer.Instance;
         Health = 500.0f;
         m_spawnData = new UnitSpawnData[3];
         int costRate = 50;
-        float spawnRate = 3.0f;
+        float spawnRate = 2.0f;
         for (int i = 0; i < m_spawnData.Length; ++i)
         {
             m_spawnData[i] = new UnitSpawnData(0, 0.0f, (i + 1) * costRate, (i + 1) * spawnRate);
@@ -41,14 +49,32 @@ public abstract class Player : MonoBehaviour
     {
         if (CanBuy && !m_timer.Paused)
         {
-            foreach (UnitSpawnData data in m_spawnData)
+            for (int i = 0; i < m_spawnData.Length; ++i)
             {
-                if (data.queueCount > 0 && data.spawnTime == 0.0f)
+                if (m_spawnData[i].queueCount > 0 && m_spawnData[i].currentTime <= 0.0f)
                 {
-
+                    Unit.UnitType type;
+                    if (i == 0) type = Unit.UnitType.CATAPULT;
+                    else if (i == 1) type = Unit.UnitType.CATAPULT;
+                    else type = Unit.UnitType.DRAGON;
+                    m_spawnData[i].queueCount -= 1;
+                    m_spawnData[i].currentTime = m_spawnData[i].spawnTime;
+                    Spawn(type);
+                }
+                else if (m_spawnData[i].queueCount > 0)
+                {
+                    m_spawnData[i].currentTime -= Time.deltaTime;
                 }
             }
         }
+    }
+
+    private void Spawn(Unit.UnitType type)
+    {
+        Vector2 position = Random.insideUnitCircle.normalized * 3.0f;
+        position = position + new Vector2(transform.position.x, transform.position.y);
+
+        m_unitSpawner.Spawn(type, transform.position, position, PlayerTag);
     }
 
     public bool PurchaseUnit(Unit.UnitType type)
@@ -56,12 +82,21 @@ public abstract class Player : MonoBehaviour
         bool validPurchase = false;
         switch (type)
         {
+            case Unit.UnitType.ARCHER:
+                if (m_spawnData[1].cost <= Crystals)
+                {
+                    Crystals -= m_spawnData[0].cost;
+                    m_spawnData[0].queueCount++;
+                    if (m_spawnData[0].queueCount <= 1) m_spawnData[0].currentTime = m_spawnData[0].spawnTime;
+                    validPurchase = true;
+                }
+                break;
             case Unit.UnitType.CATAPULT:
                 if (m_spawnData[1].cost <= Crystals)
                 {
                     Crystals -= m_spawnData[1].cost;
                     m_spawnData[1].queueCount++;
-                    m_spawnData[1].currentTime = m_spawnData[1].spawnTime;
+                    if (m_spawnData[1].queueCount <= 1) m_spawnData[1].currentTime = m_spawnData[1].spawnTime;
                     validPurchase = true;
                 }
                 break;
@@ -70,7 +105,7 @@ public abstract class Player : MonoBehaviour
                 {
                     Crystals -= m_spawnData[2].cost;
                     m_spawnData[2].queueCount++;
-                    m_spawnData[2].currentTime = m_spawnData[2].spawnTime;
+                    if (m_spawnData[2].queueCount <= 1) m_spawnData[2].currentTime = m_spawnData[2].spawnTime;
                     validPurchase = true;
                 }
                 break;

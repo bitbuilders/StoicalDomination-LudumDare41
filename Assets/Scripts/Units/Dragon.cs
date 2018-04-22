@@ -4,7 +4,7 @@ using UnityEngine;
 
 public class Dragon : Unit
 {
-    [SerializeField] ProjectileManager.ProjectileType m_type = ProjectileManager.ProjectileType.DRAGON;
+    [SerializeField] UnitType m_type = UnitType.DRAGON;
     
     protected override void LaunchAttack(ProjectileManager projectileManager)
     {

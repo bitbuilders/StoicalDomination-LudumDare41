@@ -4,26 +4,32 @@ using UnityEngine;
 
 public class ProjectileManager : Singleton<ProjectileManager>
 {
-    [SerializeField] Transform m_p1ProjectilesLocation = null;
-    [SerializeField] Transform m_p2ProjectilesLocation = null;
+    [SerializeField] Transform m_projectilesLocation = null;
     [SerializeField] GameObject m_dragonProjectile = null;
     [SerializeField] GameObject m_catapultProjectile = null;
+    [SerializeField] GameObject m_archerProjectile = null;
     [SerializeField] [Range(1, 100)] int m_poolSize = 25;
 
     List<GameObject> m_dragonProjectiles;
     List<GameObject> m_catapultProjectiles;
+    List<GameObject> m_archerProjectiles;
 
     void Start()
     {
         if (m_dragonProjectile != null)
         {
             m_dragonProjectiles = new List<GameObject>();
-            CreatePool(m_dragonProjectiles, m_dragonProjectile, m_p1ProjectilesLocation);
+            CreatePool(m_dragonProjectiles, m_dragonProjectile, m_projectilesLocation);
         }
         if (m_catapultProjectile != null)
         {
             m_catapultProjectiles = new List<GameObject>();
-            CreatePool(m_catapultProjectiles, m_catapultProjectile, m_p2ProjectilesLocation);
+            CreatePool(m_catapultProjectiles, m_catapultProjectile, m_projectilesLocation);
+        }
+        if (m_archerProjectile != null)
+        {
+            m_archerProjectiles = new List<GameObject>();
+            CreatePool(m_archerProjectiles, m_archerProjectile, m_projectilesLocation);
         }
     }
 
@@ -47,6 +53,9 @@ public class ProjectileManager : Singleton<ProjectileManager>
                 break;
             case Unit.UnitType.CATAPULT:
                 projectile = FindObjectInList(m_catapultProjectiles);
+                break;
+            case Unit.UnitType.ARCHER:
+                projectile = FindObjectInList(m_archerProjectiles);
                 break;
         }
 
