@@ -10,6 +10,9 @@ public class ShopIcon : MonoBehaviour
 
     public void OnClick()
     {
-        UnitSpawner.Instance.Purchase(m_unitType);
+        if (TurnManager.Instance.m_playerTurn.PlayerTag == Unit.PlayerTag.PLAYER_1 || GameMode.Instance.PlayerMode == GameMode.Mode.PLAYER_PLAYER)
+        {
+            UnitSpawner.Instance.Purchase(m_unitType);
+        }
     }
 }
