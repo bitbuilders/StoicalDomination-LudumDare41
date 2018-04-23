@@ -11,6 +11,7 @@ public class Timer : Singleton<Timer>
     [SerializeField] bool m_playOnAwake = true;
 
     StringBuilder m_stringBuilder;
+    AudioSource m_audioSource;
     float m_time;
     int m_startingFont;
     int m_blinkFont;
@@ -21,6 +22,7 @@ public class Timer : Singleton<Timer>
 
     private void Start()
     {
+        m_audioSource = GetComponent<AudioSource>();
         m_stringBuilder = new StringBuilder();
         ResetTimer(10.0f);
         Finished = false;
@@ -90,15 +92,19 @@ public class Timer : Singleton<Timer>
     IEnumerator BlinkText()
     {
         StartCoroutine(Blink());
+        m_audioSource.Play();
         yield return new WaitForSeconds(1.0f);
         StartCoroutine(Blink());
+        m_audioSource.Play();
         yield return new WaitForSeconds(1.0f);
         StartCoroutine(Blink());
+        m_audioSource.Play();
         yield return new WaitForSeconds(1.0f);
         StartCoroutine(Blink());
+        m_audioSource.Play();
         yield return new WaitForSeconds(1.0f);
         StartCoroutine(Blink());
-        yield return new WaitForSeconds(1.0f);
+        m_audioSource.Play();
     }
 
     IEnumerator Blink()

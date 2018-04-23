@@ -8,8 +8,9 @@ public class TurnManager : Singleton<TurnManager>
     [SerializeField] Text m_playerTurnText = null;
     [SerializeField] Text m_bannerText = null;
     [SerializeField] [Range(0.5f, 5.0f)] float m_turnTransitionTime = 1.0f;
+    [SerializeField] CameraController m_camera = null;
 
-    [SerializeField] List<Player> m_players;
+    [SerializeField] public List<Player> m_players;
 
     public Player m_playerTurn;
     UnitManager m_unitManager;
@@ -21,6 +22,16 @@ public class TurnManager : Singleton<TurnManager>
         m_unitManager = UnitManager.Instance;
         m_timer = Timer.Instance;
         m_playerTurn = m_players[m_turn];
+        if (GameMode.Instance.PlayerMode == GameMode.Mode.PLAYER_COMPUTER)
+        {
+            m_players[0].PlayerData.playerName = "Your";
+            m_players[1].PlayerData.playerName = "Computer";
+        }
+        else
+        {
+            m_players[0].PlayerData.playerName = "Player 1";
+            m_players[1].PlayerData.playerName = "Player 2";
+        }
         UpdateName();
     }
 
@@ -37,6 +48,8 @@ public class TurnManager : Singleton<TurnManager>
 
     IEnumerator TurnTransition()
     {
+        Player p = m_turn == 0 ? m_players[1] : m_players[0];
+        m_camera.SwitchToOtherSide(m_turnTransitionTime, new Vector2(0.0f, p.transform.position.y));
         yield return new WaitForSeconds(m_turnTransitionTime);
         SwitchTurn();
         m_unitManager.ResumeEverything();
@@ -56,6 +69,7 @@ public class TurnManager : Singleton<TurnManager>
     {
         m_playerTurnText.text = m_playerTurn.PlayerData.playerName.ToLower()[m_playerTurn.PlayerData.playerName.Length - 1] == 's' ? 
             m_playerTurn.PlayerData.playerName + "'" : m_playerTurn.PlayerData.playerName + "'s";
+        m_playerTurnText.text = (GameMode.Instance.PlayerMode == GameMode.Mode.PLAYER_COMPUTER && m_playerTurn.PlayerTag == Unit.PlayerTag.PLAYER_1) ? "Your" : m_playerTurnText.text;
 
         m_playerTurnText.color = m_playerTurn.PlayerData.color;
         m_bannerText.color = m_playerTurn.PlayerData.color;

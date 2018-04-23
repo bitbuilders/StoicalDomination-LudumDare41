@@ -21,6 +21,9 @@ public class UnitSpawner : Singleton<UnitSpawner>
     [SerializeField] Slider m_progress1 = null;
     [SerializeField] Slider m_progress2 = null;
     [SerializeField] Slider m_progress3 = null;
+    [SerializeField] Text m_unitText1 = null;
+    [SerializeField] Text m_unitText2 = null;
+    [SerializeField] Text m_unitText3 = null;
 
     TurnManager m_turnManager;
     Timer m_timer;
@@ -40,9 +43,24 @@ public class UnitSpawner : Singleton<UnitSpawner>
         }
         else
         {
-            m_player1.CanBuy = true;
-            m_player2.CanBuy = true;
+            if (m_turnManager.m_playerTurn.PlayerTag != m_player1.PlayerTag)
+            {
+                m_player1.CanBuy = false;
+            }
+            else
+            {
+                m_player1.CanBuy = true;
+            }
+            if (m_turnManager.m_playerTurn.PlayerTag != m_player2.PlayerTag)
+            {
+                m_player2.CanBuy = false;
+            }
+            else
+            {
+                m_player2.CanBuy = true;
+            }
         }
+
 
         Player player;
         if (m_turnManager.m_playerTurn.PlayerTag == m_player1.PlayerTag) player = m_player1;
@@ -50,6 +68,22 @@ public class UnitSpawner : Singleton<UnitSpawner>
         m_progress1.value = player.m_spawnData[0].queueCount > 0 ? 1.0f - (player.m_spawnData[0].currentTime / player.m_spawnData[0].spawnTime) : 0.0f;
         m_progress2.value = player.m_spawnData[1].queueCount > 0 ? 1.0f - (player.m_spawnData[1].currentTime / player.m_spawnData[1].spawnTime) : 0.0f;
         m_progress3.value = player.m_spawnData[2].queueCount > 0 ? 1.0f - (player.m_spawnData[2].currentTime / player.m_spawnData[2].spawnTime) : 0.0f;
+
+        if (player.m_spawnData[0].queueCount > 1)
+        {
+            m_unitText1.text = (player.m_spawnData[0].queueCount - 1).ToString();
+        }
+        else m_unitText1.text = "";
+        if (player.m_spawnData[1].queueCount > 1)
+        {
+            m_unitText2.text = (player.m_spawnData[1].queueCount - 1).ToString();
+        }
+        else m_unitText2.text = "";
+        if (player.m_spawnData[2].queueCount > 1)
+        {
+            m_unitText3.text = (player.m_spawnData[2].queueCount - 1).ToString();
+        }
+        else m_unitText3.text = "";
 
         if (m_turnManager.m_playerTurn.PlayerTag == m_player1.PlayerTag)
         {
@@ -78,6 +112,10 @@ public class UnitSpawner : Singleton<UnitSpawner>
             case Unit.UnitType.CATAPULT:
                 GameObject unit2 = player == Unit.PlayerTag.PLAYER_1 ? m_catapultTemplateBlue : m_catapultTemplateRed;
                 unitObject = Instantiate(unit2, position, Quaternion.identity, location);
+                break;
+            case Unit.UnitType.ARCHER:
+                GameObject unit3 = player == Unit.PlayerTag.PLAYER_1 ? m_archerTemplateBlue : m_archerTemplateRed;
+                unitObject = Instantiate(unit3, position, Quaternion.identity, location);
                 break;
         }
         Unit unit = unitObject.GetComponent<Unit>();

@@ -41,11 +41,15 @@ public abstract class Unit : MonoBehaviour
 
     public bool IsSelected { get; private set; }
     public bool Alive { get; private set; }
+    public float MaxHealth { get; set; }
+    public float Health { get { return m_health; } set { m_health = value; } }
 
     public SpriteRenderer m_spriteRenderer;
     ProjectileManager m_projectileManager;
     UnitManager m_unitManager;
+    AudioSource m_audioSource;
     protected Unit m_nearestTarget = null;
+    protected Player m_targetPlayer;
     Sprite m_originalSprite;
     Vector2 m_positionOffset;
     public Vector2 m_actualPosition;
@@ -57,9 +61,11 @@ public abstract class Unit : MonoBehaviour
     float m_attackTime;
     float m_delayTime;
     private bool m_paused = false;
+    protected bool m_attackBase = false;
 
     private void Start()
     {
+        m_audioSource = GetComponent<AudioSource>();
         m_unitManager = UnitManager.Instance;
         m_projectileManager = ProjectileManager.Instance;
         m_state = State.IDLE;
@@ -72,13 +78,34 @@ public abstract class Unit : MonoBehaviour
         m_attackTime = 0.0f;
         m_delayTime = 0.0f;
         m_currentSpeed = m_speed;
+        MaxHealth = Health;
         Alive = true;
+        foreach (Player player in TurnManager.Instance.m_players)
+        {
+            if (player.PlayerTag != m_playerTag)
+            {
+                m_targetPlayer = player;
+                break;
+            }
+        }
     }
 
     private void Update()
     {
         if (!m_paused && Alive)
         {
+            GameObject target = null;
+            if (m_nearestTarget != null)
+            {
+                Vector3 playerPos = m_targetPlayer.transform.position - new Vector3(m_actualPosition.x, m_actualPosition.y);
+                Vector3 targetPos = m_nearestTarget.m_actualPosition - m_actualPosition;
+                target = playerPos.magnitude < targetPos.magnitude ? m_targetPlayer.gameObject : m_nearestTarget.gameObject;
+            }
+            else
+            {
+                target = m_targetPlayer.gameObject;
+            }
+
             Vector2 direction = m_targetPosition - m_actualPosition;
             if (direction.magnitude > 1.0f)
             {
@@ -97,11 +124,12 @@ public abstract class Unit : MonoBehaviour
                 FindNearestTarget();
             }
             m_delayTime += Time.deltaTime;
-            if (m_delayTime >= 1.0f)
+            if (m_delayTime >= 2.0f || direction.magnitude <= 0.25f)
             {
-                if (m_nearestTarget != null && m_nearestTarget.Alive)
+                bool valid = m_nearestTarget != null ? m_nearestTarget.Alive : true;
+                if (target != null && valid)
                 {
-                    float distanceFromTarget = (m_nearestTarget.transform.position - transform.position).magnitude;
+                    float distanceFromTarget = (target.transform.position - transform.position).magnitude;
                     if (distanceFromTarget <= m_attackRange)
                     {
                         m_state = State.ATTACKING;
@@ -120,7 +148,7 @@ public abstract class Unit : MonoBehaviour
 
                 if (m_state == State.ATTACKING)
                 {
-                    Attack();
+                    Attack(target);
                 }
                 else if (m_state == State.SEEKING && m_nearestTarget != null)
                 {
@@ -156,14 +184,24 @@ public abstract class Unit : MonoBehaviour
         transform.position = new Vector3(m_actualPosition.x, m_actualPosition.y) + new Vector3(m_positionOffset.x, m_positionOffset.y);
     }
 
-    private void Attack()
+    private void Attack(GameObject target)
     {
         m_targetPosition = m_actualPosition;
+        if (target == m_targetPlayer.gameObject)
+        {
+            m_attackBase = true;
+        }
+        else
+        {
+            m_attackBase = false;
+        }
 
         m_attackTime += Time.deltaTime;
-        UpdateRotation(m_nearestTarget.m_actualPosition - m_actualPosition);
+        Vector2 pos = target.transform.position;
+        UpdateRotation(pos - m_actualPosition);
         if (m_attackTime >= m_attackRate)
         {
+            m_audioSource.Play();
             LaunchAttack(m_projectileManager);
             m_attackTime = 0.0f;
         }

@@ -7,17 +7,26 @@ public class UnitManager : Singleton<UnitManager>
     [SerializeField] TurnManager m_turnManager = null;
     [SerializeField] SpriteRenderer m_blueSelector = null;
     [SerializeField] SpriteRenderer m_redSelector = null;
+    [SerializeField] Transform m_minBounds = null;
+    [SerializeField] Transform m_maxBounds = null;
+    [SerializeField] [Range(0.0f, 5.0f)] float m_decisionRate = 1.0f;
 
     List<Unit> m_selectedUnits;
     public List<Unit> m_units;
 
     Timer m_timer;
+    GameMode m_mode;
+    UnitSpawner m_spawner;
     Vector2 m_selectionStart;
     Vector2 m_selectionEnd;
+    float m_decisionTime = 0.0f;
+    int m_budget = 50;
 
     private void Start()
     {
+        m_mode = GameMode.Instance;
         m_timer = Timer.Instance;
+        m_spawner = UnitSpawner.Instance;
         m_selectedUnits = new List<Unit>();
         m_selectionStart = Vector2.zero;
         m_selectionStart = m_selectionEnd;
@@ -25,79 +34,140 @@ public class UnitManager : Singleton<UnitManager>
 
     void Update()
     {
-        Vector2 mousePos = Camera.main.ScreenToWorldPoint(Input.mousePosition);
-        m_selectionEnd = mousePos;
-
-        if (Input.GetMouseButtonDown(0))
+        if (m_mode.PlayerMode == GameMode.Mode.PLAYER_PLAYER || (m_turnManager.m_playerTurn.PlayerTag == Unit.PlayerTag.PLAYER_1))
         {
-            m_selectionStart = mousePos;
-            if (!m_timer.Paused)
+            Vector2 mousePos = Camera.main.ScreenToWorldPoint(Input.mousePosition);
+            m_selectionEnd = mousePos;
+
+            if (Input.GetMouseButtonDown(0))
             {
-                bool selectedAUnit = false;
+                m_selectionStart = mousePos;
+                if (!m_timer.Paused)
+                {
+                    bool selectedAUnit = false;
+                    foreach (Unit unit in m_units)
+                    {
+                        if (Intersects(unit) && m_turnManager.m_playerTurn.PlayerTag == unit.m_playerTag)
+                        {
+                            m_selectedUnits.Add(unit);
+                            unit.Select();
+                            selectedAUnit = true;
+                        }
+                    }
+                    if (!selectedAUnit)
+                    {
+                        DeSelectEverything();
+                    }
+                }
+            }
+            else if (Input.GetMouseButtonUp(0) && !m_timer.Paused)
+            {
+                float selectionMinX = m_selectionStart.x < m_selectionEnd.x ? m_selectionStart.x : m_selectionEnd.x;
+                float selectionMaxX = m_selectionStart.x < m_selectionEnd.x ? m_selectionEnd.x : m_selectionStart.x;
+                float selectionMinY = m_selectionStart.y < m_selectionEnd.y ? m_selectionStart.y : m_selectionEnd.y;
+                float selectionMaxY = m_selectionStart.y < m_selectionEnd.y ? m_selectionEnd.y : m_selectionStart.y;
                 foreach (Unit unit in m_units)
                 {
-                    if (Intersects(unit) && m_turnManager.m_playerTurn.PlayerTag == unit.m_playerTag)
+                    if (unit.m_playerTag == m_turnManager.m_playerTurn.PlayerTag)
                     {
-                        m_selectedUnits.Add(unit);
-                        unit.Select();
-                        selectedAUnit = true;
+                        if (UnitWithinSelection(unit, selectionMinX, selectionMaxX, selectionMinY, selectionMaxY))
+                        {
+                            unit.Select();
+                            m_selectedUnits.Add(unit);
+                        }
                     }
                 }
-                if (!selectedAUnit)
+                m_selectionEnd = m_selectionStart;
+            }
+            else if (Input.GetMouseButtonDown(1) && !m_timer.Paused)
+            {
+                Unit target = null;
+                foreach (Unit unit in m_units)
                 {
-                    DeSelectEverything();
+                    if (unit.m_playerTag != m_turnManager.m_playerTurn.PlayerTag)
+                    {
+                        if (Intersects(unit))
+                        {
+                            target = unit;
+                        }
+                    }
+                }
+                if (m_selectedUnits.Count > 0)
+                {
+                    for (int i = 0; i < m_selectedUnits.Count; ++i)
+                    {
+                        if (target == null)
+                        {
+                            m_selectedUnits[i].SetTargetPosition(LimitMove(mousePos));
+                        }
+                        else
+                        {
+                            m_selectedUnits[i].SetNearestTarget(target);
+                        }
+                    }
                 }
             }
+            DrawSelection();
         }
-        else if (Input.GetMouseButtonUp(0) && !m_timer.Paused)
+        else
         {
-            float selectionMinX = m_selectionStart.x < m_selectionEnd.x ? m_selectionStart.x : m_selectionEnd.x;
-            float selectionMaxX = m_selectionStart.x < m_selectionEnd.x ? m_selectionEnd.x : m_selectionStart.x;
-            float selectionMinY = m_selectionStart.y < m_selectionEnd.y ? m_selectionStart.y : m_selectionEnd.y;
-            float selectionMaxY = m_selectionStart.y < m_selectionEnd.y ? m_selectionEnd.y : m_selectionStart.y;
-            foreach (Unit unit in m_units)
+            BlueSelector(false);
+            RedSelector(false);
+
+            if (!m_timer.Paused)
             {
-                if (unit.m_playerTag == m_turnManager.m_playerTurn.PlayerTag)
+                m_decisionTime += Time.deltaTime;
+                if (m_decisionTime >= m_decisionRate)
                 {
-                    if (UnitWithinSelection(unit, selectionMinX, selectionMaxX, selectionMinY, selectionMaxY))
+                    m_decisionTime = 0.0f;
+
+                    Player computer = m_turnManager.m_playerTurn;
+                    List<Unit> friendlies = GetFriendlies(computer.PlayerTag);
+                    int min = 0;
+                    int max = 5;
+                    
+                    if (computer.Crystals < 50 || computer.Crystals < m_budget) min++;
+                    if (friendlies.Count <= 0) max--;
+                    int decision = Random.Range(min, max);
+
+                    if (decision == 0)
                     {
-                        unit.Select();
-                        m_selectedUnits.Add(unit);
+                        int range = 3;
+                        if (computer.Crystals < 150) range--;
+                        if (computer.Crystals < 100) range--;
+                        if (computer.Crystals < 50) range--;
+
+                        if (range >= 1)
+                        {
+                            int x = Random.Range(0, range);
+                            if (x == 0) m_spawner.Purchase(Unit.UnitType.ARCHER);
+                            if (x == 1) m_spawner.Purchase(Unit.UnitType.CATAPULT);
+                            if (x == 2) m_spawner.Purchase(Unit.UnitType.DRAGON);
+                        }
+
+                        m_budget = Random.Range(50, 250);
+
+                        m_decisionRate = 1.0f;
                     }
-                }
-            }
-            m_selectionEnd = m_selectionStart;
-        }
-        else if (Input.GetMouseButtonDown(1) && !m_timer.Paused)
-        {
-            Unit target = null;
-            foreach (Unit unit in m_units)
-            {
-                if (unit.m_playerTag != m_turnManager.m_playerTurn.PlayerTag)
-                {
-                    if (Intersects(unit))
+                    else if (decision >= 1 && decision <= 3)
                     {
-                        target = unit;
-                    }
-                }
-            }
-            if (m_selectedUnits.Count > 0)
-            {
-                for (int i = 0; i < m_selectedUnits.Count; ++i)
-                {
-                    if (target == null)
-                    {
-                        m_selectedUnits[i].SetTargetPosition(mousePos);
+                        computer.Crystals += 5;
+                        m_decisionRate = 0.2f;
                     }
                     else
                     {
-                        m_selectedUnits[i].SetNearestTarget(target);
+                        m_decisionRate = 1.0f;
+
+                        int y = Random.Range(0, friendlies.Count);
+                        Unit chosen = friendlies[y];
+                        Vector2 targetPosition = Random.insideUnitCircle.normalized * 10.0f;
+                        targetPosition = LimitMove(targetPosition);
+                        chosen.SetTargetPosition(targetPosition);
                     }
                 }
             }
         }
-
-        DrawSelection();
+        
     }
 
     public bool UnitWithinSelection(Unit unit, float minX, float maxX, float minY, float maxY)
@@ -114,6 +184,44 @@ public class UnitManager : Singleton<UnitManager>
         }
 
         return within;
+    }
+
+    private Vector2 LimitMove(Vector2 targetPosition)
+    {
+        Vector2 newPosition = targetPosition;
+        if (targetPosition.x < m_minBounds.position.x)
+        {
+            newPosition.x = m_minBounds.position.x;
+        }
+        else if (targetPosition.x > m_maxBounds.position.x)
+        {
+            newPosition.x = m_maxBounds.position.x;
+        }
+        if (targetPosition.y < m_minBounds.position.y)
+        {
+            newPosition.y = m_minBounds.position.y;
+        }
+        else if (targetPosition.y > m_maxBounds.position.y)
+        {
+            newPosition.y = m_maxBounds.position.y;
+        }
+
+        return newPosition;
+    }
+
+    private List<Unit> GetFriendlies(Unit.PlayerTag tag)
+    {
+        List<Unit> units = new List<Unit>();
+
+        foreach (Unit unit in m_units)
+        {
+            if (unit.m_playerTag == tag)
+            {
+                units.Add(unit);
+            }
+        }
+
+        return units;
     }
 
     private void DrawSelection()

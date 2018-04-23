@@ -18,9 +18,10 @@ public abstract class Player : MonoBehaviour
         public int queueCount;
         public int cost;
     }
+    [SerializeField] [Range(0.0f, 500.0f)] public float Health = 500.0f;
     [SerializeField] public PlayerData PlayerData ;
     public Unit.PlayerTag PlayerTag { get; set; }
-    public float Health { get; private set; }
+    public float MaxHealth { get; set; }
     public int Crystals { get; set; }
     public int UnitLimit { get; set; }
     public bool CanBuy { get; set; }
@@ -32,10 +33,11 @@ public abstract class Player : MonoBehaviour
     {
         CanBuy = true;
         Crystals = 200;
-        UnitLimit = 25;
+        UnitLimit = 75;
         m_unitSpawner = UnitSpawner.Instance;
         m_timer = Timer.Instance;
         Health = 500.0f;
+        MaxHealth = Health;
         m_spawnData = new UnitSpawnData[3];
         int costRate = 50;
         float spawnRate = 2.0f;
@@ -43,6 +45,11 @@ public abstract class Player : MonoBehaviour
         {
             m_spawnData[i] = new UnitSpawnData(0, 0.0f, (i + 1) * costRate, (i + 1) * spawnRate);
         }
+    }
+
+    private void Start()
+    {
+        MaxHealth = Health;
     }
 
     private void Update()
@@ -54,7 +61,7 @@ public abstract class Player : MonoBehaviour
                 if (m_spawnData[i].queueCount > 0 && m_spawnData[i].currentTime <= 0.0f)
                 {
                     Unit.UnitType type;
-                    if (i == 0) type = Unit.UnitType.CATAPULT;
+                    if (i == 0) type = Unit.UnitType.ARCHER;
                     else if (i == 1) type = Unit.UnitType.CATAPULT;
                     else type = Unit.UnitType.DRAGON;
                     m_spawnData[i].queueCount -= 1;
@@ -83,7 +90,7 @@ public abstract class Player : MonoBehaviour
         switch (type)
         {
             case Unit.UnitType.ARCHER:
-                if (m_spawnData[1].cost <= Crystals)
+                if (m_spawnData[0].cost <= Crystals)
                 {
                     Crystals -= m_spawnData[0].cost;
                     m_spawnData[0].queueCount++;
